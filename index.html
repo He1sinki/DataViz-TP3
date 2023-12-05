@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<head xmlns="http://www.w3.org/1999/html">
+    <meta charset="utf-8"/>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+        }
+    </style>
+</head>
+
+<body>
+<script>
+    var width = 700,
+        height = 580;
+
+    var svg = d3
+        .select("body")
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+    // On rajoute un groupe englobant toute la visualisation pour plus tard
+    var g = svg.append("g");
+
+    // Autres projections : geoMercator, geoNaturalEarth1, ...
+    // https://github.com/d3/d3-geo/blob/master/README.md
+    var projection = d3.geoConicConformal().center([2.454071, 46.279229]).scale(2800);
+
+    // On definie une echelle de couleur
+    // via https://observablehq.com/@d3/color-schemes?collection=@d3/d3-scale-chromatic
+    var color = d3
+        .scaleQuantize()
+        .range(["#edf8e9", "#bae4b3", "#74c476", "#31a354", "#006d2c"]);
+
+    var path = d3.geoPath().projection(projection);
+
+    // Chargement des donnees
+    d3.csv("covid-06-11-2021.csv").then(function (data) {
+
+        var data = data.filter(function (row) {
+            return row.sexe == 0;
+        })
+
+        color.domain([
+            d3.min(data, function (d) {
+                return d.hosp;
+            }),
+            d3.max(data, function (d) {
+                return d.hosp;
+            })
+        ]);
+
+        d3.json("france.json").then(function (json) {
+            function drawMap(currentDay) {
+                carte = svg.selectAll("path").data(json.features);
+
+                carte.join("path")
+                    .attr("class", "enter")
+                    .attr("d", path)
+                    .style("fill", function (d) {
+                        var value = d.properties.value[currentDay].hosp;
+                        if (value) {
+                            return color(value);
+                        } else {
+                            // si pas de valeur alors en gris
+                            return "#ccc";
+                        }
+                    })
+                    .append("title")
+                    .text(function(d) {
+                        return d.properties.nom + ": " + d.properties.value[currentDay].hosp;
+                    });
+                d3.select('#day').html("Jour : " +  json.features[0].properties.value[currentDay].jour);
+            }
+
+            for (var j = 0; j < json.features.length; j++) {
+                var jsonDep = json.features[j].properties.code;
+
+                json.features[j].properties.value = data.filter(function (row) {
+                    return row.dep == jsonDep;
+                });
+            }
+            if (data.length > 0) {
+                drawMap(0);
+            }
+            d3.select("#slider").on("input", function() {
+                drawMap(+this.value);
+            });
+        });
+
+    });
+</script>
+<div style="position: absolute; top: 10px; left: 10px;">
+    <input id="slider" type="range" value="0" min="0" max="178" step="1" /><br/>
+    <span id="day"></span>
+</div>
+</body>
