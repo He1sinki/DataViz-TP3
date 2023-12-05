@@ -41,7 +41,7 @@
     var path = d3.geoPath().projection(projection);
 
     // Chargement des donnees
-    d3.csv("covid-06-11-2021.csv").then(function (data) {
+    d3.csv("https://lyondataviz.github.io/teaching/lyon1-m2/2021/data/covid-06-11-2021.csv").then(function (data) {
 
         var data = data.filter(function (row) {
             return row.sexe == 0;
@@ -56,7 +56,7 @@
             })
         ]);
 
-        d3.json("france.json").then(function (json) {
+        d3.json("https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements-version-simplifiee.geojson").then(function (json) {
             function drawMap(currentDay) {
                 carte = svg.selectAll("path").data(json.features);
 
